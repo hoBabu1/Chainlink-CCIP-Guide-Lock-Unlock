@@ -1,13 +1,18 @@
+# Namaste 🙏 
 # ChainLink CCIP Guide Lock/Unlock - [Official Docs](https://docs.chain.link/ccip)
 [Get Chain details - Router, RMN...etc addresses here](https://docs.chain.link/ccip/directory/testnet/chain/polygon-testnet-amoy)
 
 Before deploying on any network make sure that route is active from source to destination chain - [Check Here](https://docs.chain.link/ccip/directory/mainnet). 
 In Layerzero, if a particualr network is integrated with it then we can bridge it from any other layerzero compatible network, BUT that's not the case for CCIP.
 
-## Deployment of USBD 
-### **STEP-1**
+Here USBD is referred  as a ERC20 token.
 
-- Deploy Debt Token contract
+**Double check the stuffs from your end before going for mainnet.**
+
+## Deployment of ERC-20 
+### **STEP-1 / Prerequisite**
+
+- Deploy ERC-20 token
 
 ## Installation and Deployment of Token Pool 
 <details>
@@ -20,7 +25,7 @@ npm install @chainlink/contracts-ccip@1.6.0 --force
 ```
 
 ### **STEP-3**
-Create a new contract - `ChainlinkCcip` that will be used to deploy pool. We can override function and add any new functionality depening on our needs. 
+Create a new contract - `ChainlinkCcip` that will be used to deploy pool. We can override function and add any new functionality depening on our needs.Not adding anything here inorder to avoid complexity.
 
 Inherting contract `ChainlinkCcip` is `LockReleaseTokenPool`. 
 
@@ -32,7 +37,7 @@ Constructor args -
  - **bool acceptLiquidity** - whether the pool accepts external liquidity
  - **address router** - address of the router contract
 
-Deploy it on each network. 
+Deploy it on EACH network. 
 <details>
 <summary> 🔽 Contract </summary>
 
@@ -74,6 +79,18 @@ Update the liquidity manager (rebalancer) address on BOTH the pool.
 function setRebalancer(address rebalancer) external onlyOwner;
 ```
 [Polygon Txn - Set Rebalancer](https://amoy.polygonscan.com/tx/0x6528ab453c6fce7aeee51487d4310c279bfe7feddc3c4b57ef430c254d22d4f0)
+
+<details>
+<summary>Command to set balancer </summary>
+
+```javascript
+cast send <CONTRACT_ADDRESS> "setRebalancer(address)" <REBALANCER_ADDRESS> \
+  --rpc-url <RPC_URL> \
+  --private-key <PRIVATE_KEY>
+
+```
+</details>
+
 ### **STEP-5**
 - Add liquidity to each pool. Only Allows the **rebalancer** to add **liquidity** to the pool
 - Requires prior token approval
@@ -98,10 +115,13 @@ import {Adapter} from "../../contracts/core/Adapter.sol";
 import {IERC20} from "@chainlink/contracts/src/v0.8/vendor/openzeppelin-solidity/v4.8.3/contracts/token/ERC20/IERC20.sol";
 
 contract DeployCcip is Script {
+    
+    address ChainlinkCcip = 0x6E7d642328668Da5fa91C0a89d582F096384032c;
+    uint256 amount = 1000e18;
       function run() external {
-        Adapter adpt = Adapter(0x6E7d642328668Da5fa91C0a89d582F096384032c); 
+        Adapter adpt = Adapter(ChainlinkCcip); 
         vm.startBroadcast();
-        adpt.provideLiquidity(1000e18);
+        adpt.provideLiquidity(amount);
         vm.stopBroadcast();
     }
 }
@@ -133,6 +153,7 @@ Registers the admin of the token using the `owner` method.
 
 Once the administrator has been proposed and is in a pending state, they must accept the role to complete the registration process. This step finalizes the assignment of the administrator.
 
+Make sure to do it on **BOTH** chains.
 <details>
 <summary> 🔽 Foundry Script to Register Owner </summary>
 
@@ -146,13 +167,13 @@ import {IERC20} from "@chainlink/contracts/src/v0.8/vendor/openzeppelin-solidity
 
 contract CcipRegisterOwner is Script {
     /**
-     * RegistryModuleOwnerCustom
-     * polygon 0x84ad5890A63957C960e0F19b0448A038a574936B
-     * polygon - USBD - 0xA11AC8479D4bb89A3Cb6Ee8050bcce99ee6CFE2b
+     * polygon
+     * RegistryModuleOwnerCustom polygon 0x84ad5890A63957C960e0F19b0448A038a574936B
+     * polygon - USBD(ERC20) - 0xA11AC8479D4bb89A3Cb6Ee8050bcce99ee6CFE2b
      * 
      * ARBITRUM 
      * Register Moudle - 0xE625f0b8b0Ac86946035a7729Aba124c8A64cf69
-     * USBD - 0x9a64371655872B16395342B0C7A27C16d9eaC78e
+     * USBD (ERC20)- 0x9a64371655872B16395342B0C7A27C16d9eaC78e
      * 
      */
     address usbd = 0x9a64371655872B16395342B0C7A27C16d9eaC78e;
@@ -175,6 +196,8 @@ Can only be called by the pending administrator
 - Contract - **TokenAdminRegistry**
 - Function - **acceptAdminRole(address localToken)**
 - Parameter -  **address localToken** - token to accept the administrator role for
+
+Make sure to do it on **BOTH** chains.
 
 [Polygon Amoy Testnet Accept Admin Txn](https://amoy.polygonscan.com/tx/0x1e152cc59136b987651f54168a9cb8be570500aed11b41c737f8a262ee815318)
 
@@ -230,6 +253,8 @@ setPool(address localToken, address pool) external onlyTokenAdmin(localToken)```
    - **address localToken** - USBD address to set the pool for
    - **address pool**- The pool to set for the token 
 
+Make sure to do it on **BOTH** chains.
+
 [Polygon Txn - Set Pool](https://amoy.polygonscan.com/tx/0x59ac14fca418b819271b0ec672ce0912c8ad3d13c98c7ce0e58dd63228d68789) 
 
 <details>
@@ -276,7 +301,7 @@ contract CcipSetPool is Script {
 
 ### **STEP-9**
 
-Initialize the token pool configuration on each blockchain to enable cross-chain transfers,
+Initialize the token pool configuration on **EACH** blockchain to enable cross-chain transfers,
 
 - Contract - `ChainlinkCcip` - Pool Contract 
 - Function - function **applyChainUpdates**(
@@ -392,7 +417,7 @@ contract CcipApplyChainUpdates is Script {
 </details>
 
 
-## TRANSFER 
+## TRANSFER Cross chain
 <details>
 <summary> 🔽 Transfer token cross chain </summary>
 
@@ -519,7 +544,7 @@ contract CcipTransferToken is Script {
 ```
 
 </details>
-
-
-
 </details>
+
+### Hurray!!!! you have successfully transferred your token cross-chain by using chainlink CCIP
+# धन्यवाद 🙏 
